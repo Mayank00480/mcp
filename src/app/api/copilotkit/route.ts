@@ -34,7 +34,7 @@ async function createComposioMCPClient(config: any) {
           })
         });
         
-        console.log("Tools list response status:", listResponse.status);
+        
         
         if (listResponse.ok) {
           // Handle both JSON and SSE responses
@@ -44,7 +44,7 @@ async function createComposioMCPClient(config: any) {
           if (contentType && contentType.includes('text/event-stream')) {
             // Handle SSE response (Composio server)
             const responseText = await listResponse.text();
-            console.log('Raw SSE response text:', responseText);
+            
             
             const lines = responseText.split('\n');
             for (const line of lines) {
@@ -66,7 +66,6 @@ async function createComposioMCPClient(config: any) {
           }
           
           if (listData) {
-            console.log('Successfully fetched tools from MCP server:', listData);
             
             // Convert the fetched tools to the format expected by CopilotKit
             const availableTools: any = {};
@@ -82,7 +81,7 @@ async function createComposioMCPClient(config: any) {
                     }
                   },
                   async execute(params: any) {
-                    console.log(`Executing tool: ${tool.name} with params:`, params);
+                    
                     
                     const response = await fetch(`${MCP_SERVER_URL}/tools/call`, {
                       method: 'POST',
@@ -113,7 +112,7 @@ async function createComposioMCPClient(config: any) {
                     if (responseContentType && responseContentType.includes('text/event-stream')) {
                       // Handle SSE response (Composio server)
                       const responseText = await response.text();
-                      console.log('Tool execution SSE response:', responseText);
+                      
                       
                       const lines = responseText.split('\n');
                       for (const line of lines) {
@@ -142,7 +141,7 @@ async function createComposioMCPClient(config: any) {
                     }
                     
                     if (result) {
-                      console.log(`Tool ${tool.name} execution result:`, result);
+                    
                       
                       // Check for authentication errors in the result
                       if (result.error && typeof result.error === 'string' && result.error.toLowerCase().includes('authentication')) {
@@ -155,7 +154,7 @@ async function createComposioMCPClient(config: any) {
                       
                       return result;
                     } else {
-                      console.log('No valid result found in response');
+                      
                       return 'No valid result found in response';
                     }
                   }
@@ -163,91 +162,19 @@ async function createComposioMCPClient(config: any) {
               }
             }
             
-            console.log(`Successfully loaded ${Object.keys(availableTools).length} tools`);
+            
             return availableTools;
           } else {
-            console.log('No valid result found in response');
+            
             throw new Error('No valid result found in response');
           }
         } else {
-          console.log('Failed to fetch tools list, falling back to known tools');
+          console.log('Failed to fetch tools list');
           throw new Error(`Failed to fetch tools: ${listResponse.status} ${listResponse.statusText}`);
         }
       } catch (error) {
         console.error('Error fetching tools from MCP server:', error);
-        
-        // Fallback to known tools if fetching fails
-        console.log('Using fallback tools...');
-        return {
-          'COMPOSIO_CHECK_ACTIVE_CONNECTION': {
-            description: 'Check if there is an active connection for a specific toolkit',
-            schema: {
-              parameters: {
-                properties: {
-                  toolkit: {
-                    type: 'string',
-                    description: 'The toolkit name to check connection for (e.g., gmail)'
-                  }
-                },
-                required: ['toolkit']
-              }
-            },
-            async execute(params: any) {
-              console.log('Executing fallback tool with params:', params);
-              
-              const response = await fetch(`${MCP_SERVER_URL}/tools/call`, {
-                method: 'POST',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json, text/event-stream',
-                  // ...(COMPOSIO_API_KEY && { 'x-api-key': COMPOSIO_API_KEY })
-                },
-                body: JSON.stringify({
-                  jsonrpc: '2.0',
-                  id: Date.now(),
-                  method: 'tools/call',
-                  params: { 
-                    name: 'COMPOSIO_CHECK_ACTIVE_CONNECTION',
-                    arguments: params
-                  }
-                })
-              });
-              
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-              }
-              
-              // Handle both JSON and SSE responses
-              const contentType = response.headers.get('content-type');
-              let result = null;
-              
-              if (contentType && contentType.includes('text/event-stream')) {
-                const responseText = await response.text();
-                const lines = responseText.split('\n');
-                for (const line of lines) {
-                  if (line.startsWith('data: ')) {
-                    try {
-                      const data = JSON.parse(line.substring(6));
-                      if (data.result) {
-                        result = data.result;
-                        break;
-                      }
-                    } catch (e) {
-                      console.log('Non-JSON data line:', line);
-                    }
-                  }
-                }
-              } else {
-                const responseData = await response.json();
-                if (responseData.result) {
-                  result = responseData.result;
-                }
-              }
-              
-              return result || 'No valid result found in response';
-            }
-          }
-        };
+        throw error;
       }
     },
     async close() {
@@ -257,6 +184,7 @@ async function createComposioMCPClient(config: any) {
 }
 
 // Create runtime with MCP server configuration
+
 const runtime = new CopilotRuntime({
   mcpServers: [
     {
@@ -266,10 +194,11 @@ const runtime = new CopilotRuntime({
   createMCPClient: createComposioMCPClient
 });
 
-console.log('MCP Server configured at:', MCP_SERVER_URL);
-console.log('MCP tools will be automatically available to the LLM');
+
+
 
 export const POST = async (req: NextRequest) => {
+  console.log('📨 POST request received to /api/copilotkit');
   const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
     runtime,
     serviceAdapter,
