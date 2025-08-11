@@ -19,7 +19,7 @@ async function createComposioMCPClient(config: any) {
         // First, try to fetch available tools from the MCP server
         console.log('Fetching available tools from MCP server...', MCP_SERVER_URL);
         
-        const listResponse = await fetch(`${MCP_SERVER_URL}/tools/list`, {
+        const listResponse = await fetch(`${MCP_SERVER_URL}`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ async function createComposioMCPClient(config: any) {
                   async execute(params: any) {
                     
                     
-                    const response = await fetch(`${MCP_SERVER_URL}/tools/call`, {
+                    const response = await fetch(`${MCP_SERVER_URL}`, {
                       method: 'POST',
                       headers: { 
                         'Content-Type': 'application/json',
@@ -160,6 +160,7 @@ async function createComposioMCPClient(config: any) {
                   }
                 };
               }
+
             }
             
             
